@@ -1,7 +1,8 @@
 """
 TrueWorth Configuration
 """
-AV_API_KEY = "E022MJPOBT2UA5N1"
+import os
+AV_API_KEY = os.environ.get("AV_API_KEY", "E022MJPOBT2UA5N1")
 # Data Pipeline
 MIN_HISTORY_YEARS = 3
 FINANCIAL_SECTORS = {"financial services", "banks", "insurance", "capital markets", "financial", "banking"}
