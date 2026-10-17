@@ -1,6 +1,8 @@
 """
 TrueWorth — Streamlit App
 """
+import nltk
+nltk.download('vader_lexicon', quiet=True)
 import streamlit as st
 import pandas as pd
 import numpy as np
