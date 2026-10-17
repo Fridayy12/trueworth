@@ -1,13 +1,13 @@
 """
 TrueWorth — Streamlit App
 """
-import nltk
-nltk.download('vader_lexicon', quiet=True)
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import nltk
+nltk.download('vader_lexicon', quiet=True)
 from data.pipeline import DataPipeline
 from data.features import compute_financial_features, compute_feature_summary, compute_sentiment_scores
 from models.forecaster import StarForecaster
@@ -26,13 +26,7 @@ st.markdown("""
         background: linear-gradient(180deg, #F8FAFF 0%, #FFFFFF 40%) !important;
         color: #1E293B !important; font-family: 'DM Sans', sans-serif;
     }
-    .main .block-container p, .main .block-container span, .main .block-container label { color: #1E293B !important; }
-    .app-header h1 { color: #FFFFFF !important; }
-    .app-header p { color: #93C5FD !important; }
-    .verdict-box .vb-text { color: #1E293B !important; }
-    .wacc-cell.wacc-main .wv { color: #FFFFFF !important; }
-    .wacc-cell.wacc-main .wl { color: #93C5FD !important; }
-    .disclaimer { color: #94A3B8 !important; }
+    p, span, label, .stMarkdown, .stText, div { color: #1E293B !important; }
 
     /* Sidebar — dark always */
     section[data-testid="stSidebar"] { background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important; }
@@ -132,9 +126,6 @@ st.markdown("""
     }
 
     /* Hide unwanted elements */
-    section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select,
-    section[data-testid="stSidebar"] [data-baseweb="select"] span,
-    section[data-testid="stSidebar"] .stNumberInput input { color: #0F172A !important; background: #FFFFFF !important; }
     footer { display: none !important; }
     [data-testid="stMetric"] { background: #FFFFFF !important; border: 1px solid #E2E8F0;
         border-radius: 10px; padding: 12px; }
@@ -198,10 +189,19 @@ if run_btn and ticker:
         <div class="info-card"><div class="ic-label">Market Cap</div><div class="ic-value">{mc_s}</div></div>
     </div>""", unsafe_allow_html=True)
 
+    # DEBUG — remove after fixing
+    st.caption(f"DEBUG: Source={result.get('data_source','?')} | Rows={len(ft)} | Cols={list(ft.columns)[:5]}")
+    st.caption(f"DEBUG: AV_KEY loaded={'Yes' if config.AV_API_KEY and len(config.AV_API_KEY)>3 else 'No'}")
+
     features_df=compute_financial_features(ft); sentiment=compute_sentiment_scores(pipe.news)
+
+    st.caption(f"DEBUG: Features shape={features_df.shape} | FCF values={features_df.get('free_cashflow','MISSING')}")
+
     with st.spinner("Analyzing..."):
         forecaster=StarForecaster(); train_r=forecaster.train(features_df)
-        if "error" in train_r: st.error(train_r["error"]); st.stop()
+        if "error" in train_r:
+            st.caption(f"DEBUG: Train error={train_r}")
+            st.error(train_r["error"]); st.stop()
         fc_r=forecaster.forecast(features_df, years_ahead=forecast_years)
         if "error" in fc_r: st.error(fc_r["error"]); st.stop()
         forecasts=fc_r["forecasts"]
@@ -218,9 +218,7 @@ if run_btn and ticker:
         elif up<-10: cls,icon,label="vb-bear","▼","Potentially Overvalued"
         else: cls,icon,label="vb-fair","◆","Near Fair Value"
         st.markdown(f'<div class="verdict-box {cls}"><span class="vb-icon">{icon}</span><span class="vb-text"><strong>{label}</strong> — Intrinsic value <strong>${iv:,.2f}</strong> vs market <strong>${cp:,.2f}</strong> ({up:+.1f}%)</span></div>', unsafe_allow_html=True)
-    
-        if dcf_r.get("valuation_note"):
-            st.caption(f"⚠ {dcf_r['valuation_note']}")
+
     # Triple Gauge
     gauge_min = max(0, min(iv, cp) * 0.3); gauge_max = max(iv, cp) * 1.8
     if gauge_max <= gauge_min: gauge_max = gauge_min + 100
